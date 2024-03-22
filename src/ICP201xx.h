@@ -32,7 +32,9 @@ typedef void (*ICP201xx_irq_handler)(void);
 
 class ICP201xx {
   public:
+    ICP201xx(TwoWire &i2c,bool address_lsb, uint32_t freq);
     ICP201xx(TwoWire &i2c,bool address_lsb);
+    ICP201xx(SPIClass &spi,uint8_t chip_select_id, uint32_t freq);
     ICP201xx(SPIClass &spi,uint8_t chip_select_id);
     int begin();
     int start(void);
@@ -48,6 +50,7 @@ class ICP201xx {
     SPIClass *spi;
     ICP201xx_irq_handler irq_callback;
     bool spi_in_transaction;
+    uint32_t clk_freq;
 
   protected:
     bool use_spi;

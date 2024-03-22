@@ -29,16 +29,36 @@ static void irq_handler(void);
 // i2c and SPI interfaces are used from C driver callbacks, without any knowledge of the object
 // As they are declared as static, they will be overriden each time a new ICP201xx object is created
 // i2c
-#define ICP201xx_I2C_SPEED 1000000
+#define I2C_DEFAULT_CLOCK 400000
+#define I2C_MAX_CLOCK 1000000
 #define ICP201xx_I2C_ADDRESS 0x63
 // spi
 #define SPI_READ 0x80
-#define SPI_CLOCK 12000000
+#define SPI_DEFAULT_CLOCK 6000000
+#define SPI_MAX_CLOCK 12000000
 
 static  ICP201xx_irq_handler irq_callback = NULL;
 static  ICP201xx* icp_ptr = NULL;
 
 // ICP201xx constructor for I2c interface
+ICP201xx::ICP201xx(TwoWire &i2c_ref,bool lsb, uint32_t freq) {
+  i2c = &i2c_ref; 
+  i2c_address = ICP201xx_I2C_ADDRESS | (lsb ? 0x1 : 0);
+  use_spi = false;
+  spi = NULL;
+  spi_cs = 0;
+  spi_in_transaction = false;
+  irq_enabled = false;
+  irq_callback = NULL;
+  if ((freq <= I2C_MAX_CLOCK) && (freq >= 100000))
+  {
+    clk_freq = freq;
+  } else {
+    clk_freq = I2C_DEFAULT_CLOCK;
+  }
+}
+
+// ICP201xx constructor for I2c interface, default freq
 ICP201xx::ICP201xx(TwoWire &i2c_ref,bool lsb) {
   i2c = &i2c_ref; 
   i2c_address = ICP201xx_I2C_ADDRESS | (lsb ? 0x1 : 0);
@@ -48,9 +68,28 @@ ICP201xx::ICP201xx(TwoWire &i2c_ref,bool lsb) {
   spi_in_transaction = false;
   irq_enabled = false;
   irq_callback = NULL;
+  clk_freq = I2C_DEFAULT_CLOCK;
 }
 
 // ICP201xx constructor for spi interface
+ICP201xx::ICP201xx(SPIClass &spi_ref,uint8_t cs_id, uint32_t freq) {
+  spi = &spi_ref;
+  spi_cs = cs_id; 
+  use_spi = true;
+  spi_in_transaction = false;
+  i2c = NULL;
+  i2c_address = 0;
+  irq_enabled = false;
+  irq_callback = NULL;
+  if ((freq <= SPI_MAX_CLOCK) && (freq >= 100000))
+  {
+    clk_freq = freq;
+  } else {
+    clk_freq = SPI_DEFAULT_CLOCK;
+  }
+}
+
+// ICP201xx constructor for spi interface, default freq
 ICP201xx::ICP201xx(SPIClass &spi_ref,uint8_t cs_id) {
   spi = &spi_ref;
   spi_cs = cs_id; 
@@ -60,8 +99,8 @@ ICP201xx::ICP201xx(SPIClass &spi_ref,uint8_t cs_id) {
   i2c_address = 0;
   irq_enabled = false;
   irq_callback = NULL;
+  clk_freq = SPI_DEFAULT_CLOCK;
 }
-#include "wiring_private.h" // pinPeripheral() function
 
 /* starts communication with the ICP201xx */
 int ICP201xx::begin() {
@@ -72,16 +111,12 @@ int ICP201xx::begin() {
 
   if (!use_spi) {
     i2c->begin();
-    i2c->setClock(ICP201xx_I2C_SPEED);
+    i2c->setClock(clk_freq);
     icp_serif.if_mode = ICP201XX_IF_I2C;
     icp_serif.read_reg  = i2c_read;
     icp_serif.write_reg = i2c_write;
   } else {
     spi->begin();
-  // Assign pins 11, 12, 13 to SERCOM functionality
-  pinPeripheral(12, PIO_SERCOM);
-  pinPeripheral(13, PIO_SERCOM);
-  pinPeripheral(11, PIO_SERCOM);
     pinMode(spi_cs,OUTPUT);
     digitalWrite(spi_cs,HIGH);
     icp_serif.if_mode = ICP201XX_IF_4_WIRE_SPI;
@@ -279,7 +314,7 @@ static int spi_write(void * ctx, uint8_t reg, const uint8_t * wbuffer, uint32_t 
   {
     /* This is regsiter address stage */
     digitalWrite(obj->spi_cs,LOW);
-    obj->spi->beginTransaction(SPISettings(SPI_CLOCK, MSBFIRST, SPI_MODE0));
+    obj->spi->beginTransaction(SPISettings(obj->clk_freq, MSBFIRST, SPI_MODE3));
     for(uint8_t i = 0; i < wlen; i++) {
       obj->spi->transfer(wbuffer[i]);
     }

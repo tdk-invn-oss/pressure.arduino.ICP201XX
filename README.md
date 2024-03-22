@@ -48,18 +48,36 @@ Note: Interrupt pin can be mapped on any free interruptable IO, updating the ske
 
 **ICP201xx(TwoWire &i2c,bool lsb)**
 
-Create an instance of the ICP201xx that will be accessed using the specified I2C. The LSB of the I2C address can be set to 0 or 1.
+Create an instance of the ICP201xx that will be accessed using the specified I2C. The LSB of the I2C address can be set to 0 or 1.  
+I2C default clock is 400kHz.
 
 ```C++
 ICP201xx ICP(Wire,0);
 ```
 
+**ICP201xx(TwoWire &i2c,bool lsb, uint32_t freq)**
+
+Same as above, specifying the I2C clock frequency (must be between 100kHz and 1MHz)
+
+```C++
+ICP201xx ICP(Wire,0,1000000);
+```
+
 **ICP201xx(SPIClass &spi,uint8_t cs_id)**
 
-Create an instance of the ICP201xx that will be accessed using the specified SPI. The IO number to be used as chip select must be specified.
+Create an instance of the ICP201xx that will be accessed using the specified SPI. The IO number to be used as chip select must be specified.  
+SPI default clock is 6MHz.
 
 ```C++
 ICP201xx ICP(SPI,8);
+```
+
+**ICP201xx(SPIClass &spi,uint8_t cs_id, uint32_t freq)**
+
+Same as above, specifying the SPI clock frequency (must be between 100kHz and 12MHz)
+
+```C++
+ICP201xx ICP(SPI,8,12000000);
 ```
 
 ## Initialize the ICP201xx
