@@ -43,7 +43,7 @@ static  ICP201xx* icp_ptr = NULL;
 // ICP201xx constructor for I2c interface
 ICP201xx::ICP201xx(TwoWire &i2c_ref,bool lsb, uint32_t freq) {
   i2c = &i2c_ref; 
-  i2c_address = ICP201xx_I2C_ADDRESS | (lsb ? 0x1 : 0);
+  i2c_address = ICP201xx_I2C_ADDRESS + (lsb ? 0x1 : 0);
   use_spi = false;
   spi = NULL;
   spi_cs = 0;
@@ -61,7 +61,7 @@ ICP201xx::ICP201xx(TwoWire &i2c_ref,bool lsb, uint32_t freq) {
 // ICP201xx constructor for I2c interface, default freq
 ICP201xx::ICP201xx(TwoWire &i2c_ref,bool lsb) {
   i2c = &i2c_ref; 
-  i2c_address = ICP201xx_I2C_ADDRESS | (lsb ? 0x1 : 0);
+  i2c_address = ICP201xx_I2C_ADDRESS + (lsb ? 0x1 : 0);
   use_spi = false;
   spi = NULL;
   spi_cs = 0;
