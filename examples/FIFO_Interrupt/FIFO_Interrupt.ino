@@ -49,6 +49,7 @@ void loop() {
     float pressure_kP = 0;
     float temperature_C = 0;
     irq_received = 0;
+    ICP.clear_interrupt_status();
     while(ICP.getData(pressure_kP,temperature_C) == 0)
     {
       // Format data for Serial Plotter

@@ -37,7 +37,6 @@ static void irq_handler(void);
 #define SPI_DEFAULT_CLOCK 6000000
 #define SPI_MAX_CLOCK 12000000
 
-static  ICP201xx_irq_handler irq_callback = NULL;
 static  ICP201xx* icp_ptr = NULL;
 
 // ICP201xx constructor for I2c interface
@@ -158,8 +157,8 @@ int ICP201xx::begin() {
 
 int ICP201xx::start(void) {
   int rc = 0;
-  rc = inv_icp201xx_soft_reset(&icp_device);
-  rc = inv_icp201xx_config(&icp_device,ICP201XX_OP_MODE0,ICP201XX_FIFO_READOUT_MODE_PRES_TEMP);
+  rc |= inv_icp201xx_soft_reset(&icp_device);
+  rc |= inv_icp201xx_config(&icp_device,ICP201XX_OP_MODE0,ICP201XX_FIFO_READOUT_MODE_PRES_TEMP);
   inv_icp201xx_app_warmup(ICP201XX_OP_MODE0,ICP201XX_MEAS_MODE_CONTINUOUS);
 
   return rc;
@@ -222,7 +221,7 @@ int ICP201xx::enableInterrupt(uint8_t intpin, ICP201xx_irq_handler handler)
   }
   irq_callback = handler;
   pinMode(intpin,INPUT);
-  attachInterrupt(intpin,&irq_handler,LOW);
+  attachInterrupt(digitalPinToInterrupt(intpin),&irq_handler,FALLING);
   irq_enabled = true;
   return 0;
 }
@@ -236,10 +235,10 @@ int ICP201xx::startFifoInterrupt(uint8_t intpin, ICP201xx_irq_handler handler, u
   rc = inv_icp201xx_soft_reset(&icp_device);
   inv_icp201xx_flush_fifo(&icp_device);
   rc |= inv_icp201xx_config(&icp_device,ICP201XX_OP_MODE0,ICP201XX_FIFO_READOUT_MODE_PRES_TEMP);
+  inv_icp201xx_app_warmup(ICP201XX_OP_MODE0,ICP201XX_MEAS_MODE_CONTINUOUS);
   rc |= inv_icp201xx_set_press_notification_config(&icp_device, 0, 0, 0);
   rc |= inv_icp201xx_set_fifo_notification_config(&icp_device, ICP201XX_INT_MASK_FIFO_WMK_HIGH,fifo_watermark,0);
 
-  inv_icp201xx_app_warmup(ICP201XX_OP_MODE0,ICP201XX_MEAS_MODE_CONTINUOUS);
   return rc;
 }
 
@@ -368,15 +367,20 @@ void ICP201xx::inv_icp201xx_app_warmup(icp201xx_op_mode_t op_mode, icp201xx_meas
 
 }
 
+uint8_t ICP201xx::clear_interrupt_status(void)
+{
+  uint8_t i_status = 0;
+  inv_icp201xx_get_int_status(&icp_ptr->icp_device,&i_status);
+  if ( i_status )
+    inv_icp201xx_clear_int_status(&icp_ptr->icp_device,i_status);
+  return i_status;
+}
+
 static void irq_handler(void)
 {
   if(icp_ptr != NULL)
   {
-    uint8_t i_status;
     if(icp_ptr->irq_callback != NULL)
       icp_ptr->irq_callback();
-    inv_icp201xx_get_int_status(&icp_ptr->icp_device,&i_status);
-    if ( i_status )
-      inv_icp201xx_clear_int_status(&icp_ptr->icp_device,i_status);
   }
 }

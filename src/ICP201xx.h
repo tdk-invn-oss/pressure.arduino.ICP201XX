@@ -43,6 +43,7 @@ class ICP201xx {
     int startFifoInterrupt(uint8_t intpin, ICP201xx_irq_handler handler, uint8_t fifo_watermark);
     int startPressureInterrupt(uint8_t intpin, ICP201xx_irq_handler handler, float pressure);
     int startPressureChangeInterrupt(uint8_t intpin, ICP201xx_irq_handler handler, float pressure_delta);
+    uint8_t clear_interrupt_status(void);
     inv_icp201xx_t icp_device;
     uint8_t i2c_address;
     TwoWire *i2c;

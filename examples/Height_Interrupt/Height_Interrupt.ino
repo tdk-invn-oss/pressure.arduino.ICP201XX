@@ -51,6 +51,7 @@ void loop() {
   // Wait for interrupt to read data from fifo
   if(irq_received) {
     irq_received = 0;
+    ICP.clear_interrupt_status();
     Serial.println("Height interrupt detected");
   }
   delay(100);
